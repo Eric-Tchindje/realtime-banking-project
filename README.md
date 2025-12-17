@@ -61,7 +61,7 @@ We simulate **customer, account, and transaction data**, stream changes in real 
 
 ## 📂 Repository Structure
 ```text
-banking-modern-datastack/
+realtime-banking-project/
 ├── .github/workflows/         # CI/CD pipelines (ci.yml, cd.yml)
 ├── banking_dbt/              # DBT project
 │   ├── models/
