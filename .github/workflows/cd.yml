@@ -2,7 +2,7 @@ name: CD
 
 on:
   push:
-    branches: [ main ]   # deploy only from main
+    branches: [ master ]   # deploy only from master
 
 jobs:
   deploy:
@@ -47,7 +47,7 @@ jobs:
                 user: ${{ secrets.SNOWFLAKE_USER }}
                 password: ${{ secrets.SNOWFLAKE_PASSWORD }}
                 role: ACCOUNTADMIN
-                database: BANKING
+                database: BANKING_DB
                 warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
                 schema: ANALYTICS
           EOL

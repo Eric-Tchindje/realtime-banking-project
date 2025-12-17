@@ -28,11 +28,3 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 
-
-
-UPDATE  customers
-SET email = 'eric@user.com', created_at = now()
-WHERE id=421;
-
-SELECT * FROM customers
-WHERE id=421;   
