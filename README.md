@@ -161,7 +161,7 @@ The project follows production-grade DevOps practices:
 ## 📊 8. Analytics – Power BI
 
 
-<img alt="Dashboard" src="" />
+<img alt="Dashboard" src="https://github.com/Eric-Tchindje/realtime-banking-project/blob/master/post_linkedin/dashboard_image.png" />
 
 Power BI connects directly to Snowflake using **DirectQuery**:
 
