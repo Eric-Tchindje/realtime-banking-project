@@ -26,34 +26,74 @@ SNOWFLAKE_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA")
 
 TABLES = ["customers", "accounts", "transactions"]
 
-# -------- Python Callables --------
+
 def download_from_minio():
     os.makedirs(LOCAL_DIR, exist_ok=True)
+
     s3 = boto3.client(
         "s3",
         endpoint_url=MINIO_ENDPOINT,
         aws_access_key_id=MINIO_ACCESS_KEY,
         aws_secret_access_key=MINIO_SECRET_KEY
     )
-    local_files = {}
+
+    result = {}
+
     for table in TABLES:
         prefix = f"{table}/"
         resp = s3.list_objects_v2(Bucket=BUCKET, Prefix=prefix)
         objects = resp.get("Contents", [])
-        local_files[table] = []
+
+        result[table] = {
+            "files": [],
+            "keys": []
+        }
+
         for obj in objects:
             key = obj["Key"]
-            local_file = os.path.join(LOCAL_DIR, os.path.basename(key))
+            filename = os.path.basename(key)
+            local_file = os.path.join(LOCAL_DIR, filename)
+
             s3.download_file(BUCKET, key, local_file)
-            print(f"Downloaded {key} -> {local_file}")
-            local_files[table].append(local_file)
-    return local_files
+
+            print(f"📥 Downloaded {key} → {local_file}")
+
+            result[table]["files"].append(local_file)
+            result[table]["keys"].append(key)
+
+    return result
+
+
+def move_processed_files(source_keys):
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=MINIO_ENDPOINT,
+        aws_access_key_id=MINIO_ACCESS_KEY,
+        aws_secret_access_key=MINIO_SECRET_KEY
+    )
+
+    print("Moving processed files to MinIO processed/ folder")
+
+    for key in source_keys:
+        new_key = f"processed/{key}"
+
+        print(f"➡️ {key} → {new_key}")
+
+        s3.copy_object(
+            Bucket=BUCKET,
+            CopySource={"Bucket": BUCKET, "Key": key},
+            Key=new_key
+        )
+
+        s3.delete_object(Bucket=BUCKET, Key=key)
+
+    print("✅ Files moved to processed/")
 
 
 
 def load_to_snowflake(**context):
-    local_files = context["ti"].xcom_pull(task_ids="download_minio")
-    if not local_files:
+    data = context["ti"].xcom_pull(task_ids="download_minio")
+    if not data:
         print("No files found in MinIO.")
         return
 
@@ -67,33 +107,45 @@ def load_to_snowflake(**context):
     )
     cur = conn.cursor()
 
-    print("success connected to snowflake!")
+    print("✅ Connected to Snowflake")
 
-    for table, files in local_files.items():
-        if not files:
-            print(f"No files for {table}, skipping.")
-            continue
+    try:
+        for table, payload in data.items():
+            files = payload["files"]
+            keys = payload["keys"]
 
-        for f in files:
-            cur.execute(f"PUT file://{f} @%{table}")
-            print(f"Uploaded {f} -> @{table} stage")
+            if not files:
+                print(f"No files for {table}, skipping.")
+                continue
 
-        copy_sql = f"""
-        COPY INTO {table}
-        FROM @%{table}
-        FILE_FORMAT=(TYPE=PARQUET)
-        ON_ERROR='CONTINUE'
-        """
-        cur.execute(copy_sql)
-        print(f"Data loaded into {table}")
+            for f in files:
+                cur.execute(f"PUT file://{f} @%{table}")
+                print(f"⬆️ Uploaded {f} → @{table}")
 
-    cur.close()
-    conn.close()
+            cur.execute(f"""
+                COPY INTO {table}
+                FROM @%{table}
+                FILE_FORMAT=(TYPE=PARQUET)
+                ON_ERROR='CONTINUE'
+            """)
+
+            print(f"📊 Data loaded into {table}")
+
+            # Move files only after successful COPY
+            move_processed_files(keys)
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
 
 
 
 
-# -------- Airflow DAG --------
+# --------------------------------------------------
+# Airflow DAG
+# --------------------------------------------------
 default_args = {
     "owner": "airflow",
     "retries": 1,
@@ -103,21 +155,21 @@ default_args = {
 with DAG(
     dag_id="minio_to_snowflake_banking",
     default_args=default_args,
-    description="Load MinIO parquet into Snowflake RAW tables",
-    schedule_interval="*/30 * * * *", # every 30 min
+    description="Load MinIO parquet into Snowflake RAW tables and archive processed files",
+    schedule_interval="*/30 * * * *",  # every 30 minutes
     start_date=datetime(2025, 11, 1),
     catchup=False,
 ) as dag:
 
-    task1 = PythonOperator(
+    download_task = PythonOperator(
         task_id="download_minio",
         python_callable=download_from_minio,
     )
 
-    task2 = PythonOperator(
+    load_task = PythonOperator(
         task_id="load_snowflake",
         python_callable=load_to_snowflake,
         provide_context=True,
     )
 
-    task1 >> task2
+    download_task >> load_task

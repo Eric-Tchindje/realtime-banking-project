@@ -1,145 +1,233 @@
-# 🏦 Banking Modern Data Stack
+# 🏦 Banking Modern Data Stack – Real-Time Data Engineering Project
 
-![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?logo=snowflake&logoColor=white)
-![DBT](https://img.shields.io/badge/dbt-FF694B?logo=dbt&logoColor=white)
-![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-017CEE?logo=apacheairflow&logoColor=white)
-![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?logo=apachekafka&logoColor=white)
-![Debezium](https://img.shields.io/badge/Debezium-EF3B2D?logo=apache&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?logo=git&logoColor=white)
-![CI/CD](https://img.shields.io/badge/CI%2FCD-000000?logo=githubactions&logoColor=white)
+![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?logo=snowflake\&logoColor=white)
+![dbt](https://img.shields.io/badge/dbt-FF694B?logo=dbt\&logoColor=white)
+![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-017CEE?logo=apacheairflow\&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?logo=apachekafka\&logoColor=white)
+![Debezium](https://img.shields.io/badge/Debezium-EF3B2D?logo=apache\&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python\&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker\&logoColor=white)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-000000?logo=githubactions\&logoColor=white)
 
 ---
 
 ## 📌 Project Overview
-This project demonstrates an **end-to-end modern data stack pipeline** for a **Banking domain**.  
-We simulate **customer, account, and transaction data**, stream changes in real time, transform them into analytics-ready models, and visualize insights — following **best practices of CI/CD and data warehousing**.
 
-👉 Think of it as a **real-world banking data ecosystem** built on modern data tools.  
+This project implements an **end-to-end real-time banking data platform** using a **modern data stack**. It is designed to **mirror how real financial institutions ingest, process, store, and analyze transactional data at scale**.
 
----
+Instead of relying on static datasets, the system **generates live banking activity**, captures database changes in real time, and processes them through **streaming, warehousing, orchestration, and analytics layers**.
 
-## 🏗️ Architecture  
+**Key goals of the project:**
 
-<img width="5647" height="3107" alt="Architecture" src="https://github.com/user-attachments/assets/7521ea8a-451e-46ff-9db0-71dd6ddf8181" />
-
-
-**Pipeline Flow:**
-1. **Data Generator** → Simulates banking transactions, accounts & customers (via Faker).  
-2. **Kafka + Debezium** → Streams change data (CDC) into MinIO (S3-compatible storage).  
-3. **Airflow** → Orchestrates data ingestion & snapshots into Snowflake.  
-4. **Snowflake** → Cloud Data Warehouse (Bronze → Silver → Gold).  
-5. **DBT** → Applies transformations, builds marts & snapshots (SCD Type-2).  
-6. **CI/CD with GitHub Actions** → Automated tests, build & deployment.  
+* Simulate a realistic banking OLTP system
+* Capture **Change Data Capture (CDC)** in real time
+* Apply **Medallion Architecture (Bronze → Silver → Gold)**
+* Build **analytics-ready fact & dimension models**
+* Track historical changes using **SCD Type 2**
+* Automate everything with **Airflow & CI/CD**
 
 ---
 
-## ⚡ Tech Stack
-- **Snowflake** → Cloud Data Warehouse  
-- **DBT** → Transformations, testing, snapshots (SCD Type-2)  
-- **Apache Airflow** → Orchestration & DAG scheduling  
-- **Apache Kafka + Debezium** → Real-time streaming & CDC  
-- **MinIO** → S3-compatible object storage  
-- **Postgres** → Source OLTP system  
-- **Python (Faker)** → Data simulation  
-- **Docker & docker-compose** → Containerized setup  
-- **Git & GitHub Actions** → CI/CD workflows  
+## 🏗️ High-Level Architecture
+
+<img alt="Architecture" src="https://github.com/user-attachments/assets/7521ea8a-451e-46ff-9db0-71dd6ddf8181" />
+
+### 🔄 End-to-End Flow
+
+1. **PostgreSQL (OLTP)** – Simulated banking system (customers, accounts, transactions)
+2. **Kafka + Debezium** – Capture inserts, updates, deletes via CDC
+3. **MinIO (S3-compatible)** – Durable raw data landing zone (Parquet)
+4. **Apache Airflow** – Orchestrates ingestion, snapshots, transformations
+5. **Snowflake** – Cloud data warehouse (Bronze / Silver / Gold)
+6. **dbt** – Transformations, tests, incremental models, SCD Type 2
+7. **Power BI** – Real-time analytics via DirectQuery
 
 ---
 
-## ✅ Key Features
-- **PostgreSQL OLTP**: Source relational database with ACID guarantees (customers, accounts, transactions)  
-- **Simulated banking system**: customers, accounts, and transactions  
-- **Change Data Capture (CDC)** via Kafka + Debezium (capturing Postgres WAL)  
-- **Raw → Staging → Fact/Dimension** models in DBT  
-- **Snapshots for history tracking** (slowly changing dimensions)  
-- **Automated pipeline orchestration** using Airflow  
-- **CI/CD pipeline** with dbt tests + GitHub Actions  
+## 🏦 1. Data Source – OLTP Banking System (PostgreSQL)
+
+The pipeline begins with a **PostgreSQL transactional database**, simulating a real banking core system:
+
+* 👥 **customers**
+* 💼 **accounts**
+* 💸 **transactions**
+
+Synthetic data is generated using **Python + Faker**, mimicking real banking behavior such as deposits, withdrawals, transfers, and account updates.
+
+**Why PostgreSQL?**
+
+* ACID-compliant transactions
+* Strong consistency guarantees
+* Relational schema suitable for financial data
+
+---
+
+## ⚡ 2. Real-Time Streaming – Kafka + Debezium (CDC)
+
+To avoid batch polling and data loss, the project uses **Change Data Capture**:
+
+* **Debezium** listens to PostgreSQL WAL logs
+* **Kafka** streams every insert, update, and delete event
+
+This ensures:
+
+* Near real-time data availability
+* No missed changes
+* Exactly-once processing semantics downstream
+
+---
+
+## 🪣 3. Object Storage – MinIO (S3-Compatible)
+
+A Kafka consumer writes CDC events into **MinIO**, acting as a **durable landing zone**:
+
+* Parquet format for efficient storage
+* Separate folders per table
+* Acts as the **Bronze layer entry point**
+
+This decouples streaming from warehousing and allows replayability.
+
+---
+
+## 🔁 4. Orchestration – Apache Airflow
+
+Apache Airflow automates the entire data lifecycle:
+
+* Ingests data from MinIO → Snowflake (Bronze)
+* Runs incremental and snapshot-based pipelines
+* Handles retries, failures, and scheduling
+
+DAGs are fully containerized and production-oriented.
+
+---
+
+## ❄️ 5. Data Warehouse – Snowflake (Medallion Architecture)
+
+The warehouse follows the **Medallion Architecture**:
+
+### 🥉 Bronze Layer
+
+* Raw ingested data
+* Minimal transformations
+* Preserves source fidelity
+
+### 🥈 Silver Layer
+
+* Cleaned and typed data
+* Deduplicated CDC events
+* Business logic applied
+
+### 🥇 Gold Layer
+
+* Star schema
+* Fact & dimension tables
+* Optimized for BI & analytics
+
+---
+
+## 🛠 6. Transformations – dbt & SCD Type 2
+
+dbt is responsible for all transformations:
+
+* Staging models
+* Incremental fact tables
+* Snapshot-based **Slowly Changing Dimensions (Type 2)**
+* Data quality tests
+
+### 📘 SCD Type 2 Explained
+
+When a customer or account attribute changes:
+
+* Old record → `is_current = false`
+* New record → inserted with new validity range
+
+This allows **full historical analysis**, a critical banking requirement.
+
+---
+
+## 🚀 7. CI/CD & DevOps
+
+The project follows production-grade DevOps practices:
+
+* 🐳 **Docker & Docker Compose** – Fully containerized stack
+* 🔐 **Secrets management** – `.env` + GitHub Secrets
+* 🤖 **GitHub Actions**
+
+  * CI: dbt compile, tests
+  * CD: Deploy DAGs and dbt models
+
+---
+
+## 📊 8. Analytics – Power BI
+
+
+<img alt="Dashboard" src="" />
+
+Power BI connects directly to Snowflake using **DirectQuery**:
+
+* Real-time dashboards
+* No manual refresh
+* Queries Gold models directly
+
+### Dashboard Metrics
+
+* Total customers
+* Account balances
+* Transaction volumes
+* Customer activity ranking
+* Fraud-like behavior patterns
 
 ---
 
 ## 📂 Repository Structure
+
 ```text
 realtime-banking-project/
-├── .github/workflows/         # CI/CD pipelines (ci.yml, cd.yml)
-├── banking_dbt/              # DBT project
-│   ├── models/
-│   │   ├── staging/           # Staging models
-│   │   ├── marts/             # Facts & dimensions
-│   │   └── sources.yml
-│   ├── snapshots/             # SCD2 snapshots
-│   └── dbt_project.yml
-├── consumer
-│   └── kafka_to_minio.py
-├── data-generator/            # Faker-based data simulator
-│   └── faker_generator.py
-├── docker/                    # Airflow DAGs, plugins, etc.
-│   ├── dags/                  # DAGs (minio_to_snowflake, scd_snapshots)
-├── kafka-debezium/            # Kafka connectors & CDC logic
-│   └── generate_and_post_connector.py
-├── postgres/                  # Postgres schema (OLTP DDL & seeds)
-│   └── schema.sql
-├── .gitignore
-├── docker-compose.yml         # Containerized infra
-├── dockerfile-airflow.dockerfile
-├── requirements.txt
+├── banking_dbt/              # dbt models, marts, snapshots
+├── docker/                   # Airflow DAGs
+├── consumer/                 # Kafka → MinIO consumer
+├── data-generator/           # Faker-based OLTP simulator
+├── kafka-debezium/           # CDC connectors
+├── postgres/                 # OLTP schema
+├── .github/workflows/        # CI/CD pipelines
+├── docker-compose.yml
 └── README.md
 ```
 
 ---
 
-## ⚙️ Step-by-Step Implementation  
+## 🧠 Skills Demonstrated
 
-### **1. Data Simulation**  
-- Generated synthetic banking data (**customers, accounts, transactions**) using **Faker**.  
-- Inserted data into **PostgreSQL (OLTP)** so the system behaves like a real transactional database (**ACID, constraints**).  
-- Controlled generation via `config.yaml`.  
+**Data Engineering**
 
----
+* Kafka streaming & CDC
+* Snowflake warehousing
+* Airflow orchestration
+* dbt modeling
 
-### **2. Kafka + Debezium CDC**  
-- Set up **Kafka Connect & Debezium** to capture changes from **Postgres**.  
-- Streamed **CDC events** into **MinIO**.  
+**Data Modeling**
 
----
+* Star schema
+* Fact & dimension tables
+* SCD Type 2
 
-### **3. Airflow Orchestration**  
-- Built DAGs to:  
-  - Ingest **MinIO data → Snowflake (Bronze)**.  
-  - Schedule **snapshots & incremental loads**.  
+**DevOps**
 
----
+* Docker
+* CI/CD pipelines
+* Secrets management
 
-### **4. Snowflake Warehouse**  
-- Organized into **Bronze → Silver → Gold layers**.  
-- Created **staging schemas** for ingestion.  
+**Programming & Analytics**
 
----
-
-### **5. DBT Transformations**  
-- **Staging models** → cleaned source data.  
-- **Dimension & fact models** → built marts.  
-- **Snapshots** → tracked history of accounts & customers.  
+* Python
+* SQL
+* Jinja / dbt
+* Power BI
 
 ---
 
-### **6. CI/CD with GitHub Actions**  
-- **ci.yml** → Lint, dbt compile, run tests.  
-- **cd.yml** → Deploy DAGs & dbt models on merge.  
+## 👤 Author
 
----
-
-## 📊 Final Deliverables  
-- **Automated CDC pipeline** from Postgres → Snowflake  
-- **DBT models** (facts, dimensions, snapshots)  
-- **Orchestrated DAGs in Airflow**  
-- **Synthetic banking dataset** for demos  
-- **CI/CD workflows** ensuring reliability  
-
----
-
-**Author**: *Eric Tchindje*  
-**LinkedIn**: [Tchindje](https://www.linkedin.com/in/eric-tchindje/)  
-**Contact**: [tchindjeeric61@gmail.com](mailto:tchindjeeric61@gmail.com)  
-
+**Eric Tchindje**
+🔗 LinkedIn: [https://www.linkedin.com/in/eric-tchindje/](https://www.linkedin.com/in/eric-tchindje/)
+📧 Email: [tchindjeeric61@gmail.com](mailto:tchindjeeric61@gmail.com)

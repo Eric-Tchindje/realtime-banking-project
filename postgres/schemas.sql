@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
-
 CREATE TABLE IF NOT EXISTS accounts (
     id SERIAL PRIMARY KEY,
     customer_id  INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -17,8 +16,8 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 
-CREATE TABLE IF NOT EXISTS transactions (
-    id BIGSERIAL PRIMARY KEY,
+CREATE TABLE if not EXISTS transactions (
+    id SERIAL not null PRIMARY KEY ,
     account_id INT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     txn_type VARCHAR(20) NOT NULL,
     amount NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
@@ -26,5 +25,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     related_account_id INT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() 
 );
+
 
 

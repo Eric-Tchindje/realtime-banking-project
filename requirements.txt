@@ -14,4 +14,4 @@ fastparquet
 pandas
 
 #dbt
-dbt-snowflake
+dbt-snowflake==1.10.4
